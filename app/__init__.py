@@ -1,1 +1,1 @@
-# IntelliMaintain AI application package
+"""IntelliMaintain AI backend."""
