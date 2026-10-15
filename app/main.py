@@ -1,4 +1,6 @@
-"""FastAPI app. Run from the backend folder:  uvicorn app.main:app --reload"""
+
+"""FastAPI app. Run from the backend folder: uvicorn app.main:app --reload"""
+
 import asyncio
 import logging
 from contextlib import asynccontextmanager, suppress
@@ -27,9 +29,13 @@ async def _ticker():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_bundle()          # loads (or trains) the model before serving
+    get_bundle()
     service.init()
-    task = asyncio.create_task(_ticker()) if config.SIM_TICK_SECONDS > 0 else None
+    task = (
+        asyncio.create_task(_ticker())
+        if config.SIM_TICK_SECONDS > 0
+        else None
+    )
     yield
     if task:
         task.cancel()
@@ -37,6 +43,11 @@ async def lifespan(app: FastAPI):
             await task
 
 
+app = FastAPI(
+    title="IntelliMaintain AI",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +59,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 class ReadingIn(BaseModel):
@@ -74,7 +84,10 @@ def get_fleet():
 
 
 @app.get("/api/machines/{machine_id}")
-def get_machine(machine_id: str, n: int = Query(120, ge=20, le=500)):
+def get_machine(
+    machine_id: str,
+    n: int = Query(120, ge=20, le=500),
+):
     try:
         return service.machine_detail(machine_id, n)
     except KeyError:
@@ -91,8 +104,12 @@ def post_reading(machine_id: str, body: ReadingIn):
 
 
 @app.get("/api/alerts")
-def get_alerts(status: Optional[Literal["pending", "approved", "rejected", "superseded"]] = None,
-               limit: int = Query(100, ge=1, le=500)):
+def get_alerts(
+    status: Optional[
+        Literal["pending", "approved", "rejected", "superseded"]
+    ] = None,
+    limit: int = Query(100, ge=1, le=500),
+):
     return service.list_alerts(status, limit)
 
 
@@ -123,7 +140,7 @@ def simulate_reset():
     return {"ok": True}
 
 
-# Serve the built React app too, if present, so one process is enough for a demo.
+# Serve the built React app too, if present.
 _dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if _dist.exists():
     app.mount("/", StaticFiles(directory=_dist, html=True), name="web")
